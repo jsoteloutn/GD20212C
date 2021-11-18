@@ -19,41 +19,11 @@ CREATE TABLE MONKEY_D_BASE.BI_Tiempo (
 	cuarto				CHAR(2) NOT NULL,
 	anio				INT NOT NULL);
 
-/************************
-*** CREACIÓN DE VISTAS **
-*************************/
-CREATE VIEW MONKEY_D_BASE.BI_VW_Desvio_Promedio AS
-SELECT o.taller_id,ot.tarea_id,AVG(DATEDIFF(day,ot.fecha_planificada,ot.fecha_ini_real)) as desvio_promedio FROM MONKEY_D_BASE.Orden_Tarea ot
-JOIN MONKEY_D_BASE.Orden_Trabajo o ON o.id = ot.orden_id
-GROUP BY o.taller_id,ot.tarea_id;
-
---Rango_Edad
-DECLARE @tabla nvarchar(100);
-SET @tabla = 'Rango_Edad';
-
-INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
-			edad_ini,
-			edad_fin
-			)
-VALUES (18,30);
-
-INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
-			edad_ini,
-			edad_fin
-			)
-VALUES (31,50);
-
-INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
-			edad_ini
-			)
-VALUES (50);
-		
-EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
-
 /********************
 *** CREACION SP ***** 
 *********************/
 --Este procedure migrara los datos a las dimensiones correspondientes
+		DECLARE @tabla nvarchar(100);
 --Tiempo
 		SET @tabla = 'Tiempo';
 
@@ -88,12 +58,43 @@ EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
 		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
---Consultas
+--Rango_Edad
+		SET @tabla = 'Rango_Edad';
+
+		INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
+					edad_ini,
+					edad_fin
+					)
+		VALUES (18,30);
+
+		INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
+					edad_ini,
+					edad_fin
+					)
+		VALUES (31,50);
+
+		INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
+					edad_ini
+					)
+		VALUES (50);
+		
+	EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+/************************
+*** CREACIÓN DE VISTAS **
+*************************/
+--Desvio Promedio x Tarea x Taller
+CREATE VIEW MONKEY_D_BASE.BI_VW_Desvio_Promedio_x_Tarea_x_Taller AS
+SELECT o.taller_id,ot.tarea_id,AVG(DATEDIFF(day,ot.fecha_planificada,ot.fecha_ini_real)) as desvio_promedio FROM MONKEY_D_BASE.Orden_Tarea ot
+JOIN MONKEY_D_BASE.Orden_Trabajo o ON o.id = ot.orden_id
+GROUP BY o.taller_id,ot.tarea_id;
+
+
 --Costo Promedio x rango etario de choferes
-SELECT re.edad_ini,re.edad_fin,avg(e.costo_hora) 
+CREATE VIEW MONKEY_D_BASE.BI_VW_Costo_Promedio_x_RangoEtario AS
+SELECT re.id,re.edad_ini,re.edad_fin,avg(e.costo_hora) as costo_promedio
 FROM MONKEY_D_BASE.Empleado e
 JOIN MONKEY_D_BASE.Viaje v ON v.chofer_legajo = e.legajo
 JOIN MONKEY_D_BASE.BI_Rango_Edad re ON DATEDIFF(YEAR,e.fecha_nacimiento,v.fecha_fin) BETWEEN re.edad_ini AND re.edad_fin 
 WHERE e.tipo_id = 1
-GROUP BY re.edad_ini,re.edad_fin
-ORDER BY 3;
+GROUP BY re.id,re.edad_ini,re.edad_fin;

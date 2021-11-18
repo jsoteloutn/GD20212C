@@ -11,6 +11,7 @@ CREATE TABLE MONKEY_D_BASE.Tiempo (
 	anio				INT NOT NULL);
 
 --Rango_Edad
+		DECLARE @tabla nvarchar(100);
 		SET @tabla = 'Rango_Edad';
 
 		INSERT INTO MONKEY_D_BASE.Rango_Edad(

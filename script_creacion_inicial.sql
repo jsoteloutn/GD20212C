@@ -9,12 +9,11 @@ GO
 *************************/
 IF NOT EXISTS (SELECT * FROM sys.schemas WHERE name = 'MONKEY_D_BASE')
 	EXEC ('CREATE SCHEMA MONKEY_D_BASE');
-
 GO
 
-/***********************
-*** DROP DE OBJETOS ***
-***********************/
+/***********************************
+*** DROP DE OBJETOS EN EL SCHEMA ***
+************************************/
 DECLARE @objeto nvarchar(100), 
 		@tabla nvarchar(100), 
 		@tipo nvarchar(2), 
@@ -58,11 +57,12 @@ GO
 /************************
 *** CRECION DE TABLAS ***
 *************************/
+-- Tabla de revisión interna creada para ver la cantidad de registros insertados en cada una al momento de la carga
 CREATE TABLE MONKEY_D_BASE.ControlTablas
 		 (nombre	VARCHAR(250) PRIMARY KEY,
 		  CantRegis	INT	);
 
--- tablas del dominio
+-- Creación de tabla de que guarda todos los recorridos vigentes
 CREATE TABLE MONKEY_D_BASE.Recorrido (
 	id				INT IDENTITY PRIMARY KEY,
 	ciudad_origen	NVARCHAR(255)	NOT NULL,
@@ -70,6 +70,7 @@ CREATE TABLE MONKEY_D_BASE.Recorrido (
 	precio			DECIMAL(18,2)	NOT NULL,
 	kms				INT		NOT NULL);
 
+-- Creación de tabla que guarda los distintos tipos de paquetes
 CREATE TABLE MONKEY_D_BASE.Paquete_Tipo (		
 	id				INT IDENTITY PRIMARY KEY,
 	descripcion		NVARCHAR(255) NOT NULL,
@@ -78,11 +79,13 @@ CREATE TABLE MONKEY_D_BASE.Paquete_Tipo (
 	ancho_max		DECIMAL(18,2) NOT NULL,
 	largo_max		DECIMAL(18,2) NOT NULL,
 	precio			DECIMAL(18,2) NOT NULL	);
-								
+				
+-- Creación de tabla donde se guarda las Marcas de los modelos de camiones								
 CREATE TABLE MONKEY_D_BASE.Marca (
 	id				INT IDENTITY PRIMARY KEY,
 	descripcion		NVARCHAR(255) NOT NULL );
 
+-- Creación de tabla donde se guardan los modelos de los camiones
 CREATE TABLE MONKEY_D_BASE.Camion_Modelo (
 	id					INT IDENTITY PRIMARY KEY,
 	descripcion			NVARCHAR(255)	NOT NULL,
@@ -91,6 +94,7 @@ CREATE TABLE MONKEY_D_BASE.Camion_Modelo (
 	velocidad_max		INT		NOT NULL,
 	marca_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Marca(id) );
 
+-- Creación de tabla donde se guardan todos los camiones de la flota
 CREATE TABLE MONKEY_D_BASE.Camion (
 	id			INT IDENTITY PRIMARY KEY,
 	nro_chasis	NVARCHAR(255)	NOT NULL,
@@ -99,10 +103,12 @@ CREATE TABLE MONKEY_D_BASE.Camion (
 	patente		NVARCHAR(255)	NOT NULL,
 	modelo_id	INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion_Modelo(id) );
 
+-- Creación de tabla que guarda los distintos tipos de Empleados
 CREATE TABLE MONKEY_D_BASE.Empleado_Tipo (
 	id					INT IDENTITY PRIMARY KEY,
 	tipo_descripcion	NVARCHAR(255) NOT NULL	);
 
+-- Creación de tabla que guarda todos los empleados de la organización, sea Mecánico o Chofer
 CREATE TABLE MONKEY_D_BASE.Empleado (
 	legajo				INT IDENTITY PRIMARY KEY,
 	nombre				NVARCHAR(255)	NOT NULL,
@@ -113,8 +119,9 @@ CREATE TABLE MONKEY_D_BASE.Empleado (
 	mail				NVARCHAR(255)	NOT NULL,	
 	fecha_nacimiento	DATETIME2	NOT NULL,	
 	costo_hora			DECIMAL(18,2)	NOT NULL,
-	tipo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Empleado_Tipo(id));
+	tipo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Empleado_Tipo(id)	);
 
+--Creación de tabla que guarda todos los viajes realizados
 CREATE TABLE MONKEY_D_BASE.Viaje (
 	id						INT IDENTITY PRIMARY KEY,
 	fecha_inicio			DATETIME2	NOT NULL,	
@@ -125,6 +132,7 @@ CREATE TABLE MONKEY_D_BASE.Viaje (
 	recorrido_codigo		INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Recorrido(id),	
 	camion_codigo			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id)	);
 
+-- Creación de tabla que guarda los paquetes que se llevaron en cada viaje
 CREATE TABLE MONKEY_D_BASE.Viaje_Paquete (
 	id						INT IDENTITY PRIMARY KEY,
 	paquete_cantidad		INT NOT NULL,
@@ -132,6 +140,7 @@ CREATE TABLE MONKEY_D_BASE.Viaje_Paquete (
 	tipo_id					INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Paquete_tipo(id),
 	viaje_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Viaje(id)	);
 
+-- Creación de tabla donde se guardan todos los Talleres con los que trabaja la organización
 CREATE TABLE MONKEY_D_BASE.Taller (
 	id			INT IDENTITY PRIMARY KEY,
 	nombre		NVARCHAR(255)	NOT NULL,
@@ -140,32 +149,38 @@ CREATE TABLE MONKEY_D_BASE.Taller (
 	telefono	DECIMAL(18)		NOT NULL,	
 	direccion	NVARCHAR(255)	NOT NULL	);
 
+-- Creación de tabla que guarda todos los materiales que requiere cada tarea para su realización
 CREATE TABLE MONKEY_D_BASE.Material (
 	id			INT IDENTITY PRIMARY KEY,
 	codigo		NVARCHAR(100) NOT NULL,
 	descripcion	NVARCHAR(255) NOT NULL,
 	precio      DECIMAL(18,2) NOT NULL	);
 
+-- Creación de tabla que guarda los distintos tipos de tareas que se pueden realizar para las Ordenes de trabajo
 CREATE TABLE MONKEY_D_BASE.Tarea_Tipo (
 	id			INT IDENTITY PRIMARY KEY,
 	descripcion	NVARCHAR(255)	NOT NULL	);
 
+-- Creación de tabla que guarda todas las tareas que se pueden realizar en las ordenes de trabajo
 CREATE TABLE MONKEY_D_BASE.Tarea (
 	id				INT IDENTITY PRIMARY KEY,
 	descripcion		NVARCHAR(255)	NOT NULL,
 	tiempo_estimado	INT		NOT NULL,
 	tipo_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Tarea_Tipo(id)	);
 
+-- Creación de tabla que guarda cuales materiales y con qué cantidad deben realizarse para cada tarea
 CREATE TABLE MONKEY_D_BASE.Tarea_Material (
 	id					INT IDENTITY PRIMARY KEY,
 	material_cantidad	INT	NULL,
 	material_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Material(id),
 	tarea_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Tarea(id)	);
 
+-- Creación de tabla que guarda los distintos Estados en los que se puede encontrar una Orden de Trabajo
 CREATE TABLE MONKEY_D_BASE.Estado_OT (
 	id			INT IDENTITY PRIMARY KEY,
 	descripcion	NVARCHAR(255)	NOT NULL	);
 
+-- Creación de tabla donde se guardan todas las ordenes de trabajo
 CREATE TABLE MONKEY_D_BASE.Orden_Trabajo (
 	id			INT IDENTITY PRIMARY KEY,
 	fecha		DATETIME2 NOT NULL,
@@ -173,6 +188,7 @@ CREATE TABLE MONKEY_D_BASE.Orden_Trabajo (
 	taller_id	INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Taller(id),
 	estado_id	INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Estado_OT(id)	);
 	
+-- Creación de tabla donde se guardan las tareas que se deben realizar o realizaron para cada Orden de Trabajo
 CREATE TABLE MONKEY_D_BASE.Orden_Tarea (
 	id					INT IDENTITY PRIMARY KEY,
 	fecha_planificada	DATETIME2 NOT NULL,
@@ -181,14 +197,16 @@ CREATE TABLE MONKEY_D_BASE.Orden_Tarea (
 	orden_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Orden_Trabajo(id),
 	tarea_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Tarea(id),
 	mecanico_legajo		INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Empleado(legajo)	);
-
-			-- hago la creacion de todas las tablas en un bloque, crea todo o nada
+			
 GO
 
 /********************
 *** CREACION SP *****
 *********************/
 -- auxiliares
+
+-- Definición del procedure que es el encargado de insertar en la tabla 
+-- controlTablas los resultados de cada INSERT realizado sobre las tablas del dominio
 CREATE PROCEDURE MONKEY_D_BASE.Sp_registrarTabla (@tabla VARCHAR(255))
 AS
 BEGIN
@@ -199,6 +217,8 @@ END
 GO
 
 -- llenado de tablas del dominio
+
+-- Definición del procedure que es el encargado de migrar las tablas paramétricas, aquellas tablas que no requieran de JOINS.
 CREATE PROCEDURE MONKEY_D_BASE.Sp_LlenadoParametricas
 AS 
 BEGIN
@@ -312,7 +332,7 @@ BEGIN
 
 	END TRY
 
-	BEGIN CATCH
+	BEGIN CATCH -- Esta porción es la que contempla los errores en caso de ocurrir
 		
 		DECLARE @Message varchar(255) = 'Insert tabla '  + UPPER(@tabla) + '; Motivo: '  + UPPER(ERROR_MESSAGE()),
 				@Severity int = ERROR_SEVERITY(),
@@ -325,6 +345,8 @@ BEGIN
 END
 GO
 
+-- Definición de procedure que es el encargado de migrar las tablas “secundarias”, 
+-- aquellas que requieran un JOIN para su migración y tengan un volúmen de datos intermedio.
 CREATE PROCEDURE MONKEY_D_BASE.Sp_LlenadoSecundarias
 AS 
 BEGIN
@@ -399,7 +421,7 @@ BEGIN
 		SET @tabla = 'Chofer';
 
 		SET IDENTITY_INSERT MONKEY_D_BASE.Empleado ON; -- Desactivo la propiedad de autoincremento
-		
+
 		INSERT INTO MONKEY_D_BASE.Empleado (
 			legajo,nombre,
 			apellido,
@@ -409,7 +431,7 @@ BEGIN
 			mail,
 			fecha_nacimiento,
 			costo_hora,
-			tipo_id)
+			tipo_id	)
 		SELECT DISTINCT 
 			m.CHOFER_NRO_LEGAJO,
 			m.CHOFER_NOMBRE,
@@ -440,7 +462,7 @@ BEGIN
 			mail,
 			fecha_nacimiento,
 			costo_hora,
-			tipo_id)
+			tipo_id	)
 		SELECT DISTINCT 
 			m.MECANICO_NRO_LEGAJO,
 			m.MECANICO_NOMBRE,
@@ -459,7 +481,7 @@ BEGIN
 		
 		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
-		SET IDENTITY_INSERT MONKEY_D_BASE.Empleado OFF; -- Desactivo la propiedad de autoincremento
+		SET IDENTITY_INSERT MONKEY_D_BASE.Empleado OFF; -- Reactivo la propiedad de autoincremento
 
 		--Tarea
 		SET @tabla = 'Tarea';
@@ -482,7 +504,7 @@ BEGIN
 
 		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
-		SET IDENTITY_INSERT MONKEY_D_BASE.Tarea OFF; -- Desactivo la propiedad de autoincremento
+		SET IDENTITY_INSERT MONKEY_D_BASE.Tarea OFF; -- Reactivo la propiedad de autoincremento
 
 		--Tarea_Material
 		SET @tabla = 'Tarea_Material';
@@ -504,7 +526,7 @@ BEGIN
 
 	END TRY
 
-	BEGIN CATCH
+	BEGIN CATCH -- Esta porción es la que contempla los errores en caso de ocurrir
 		
 		DECLARE @Message varchar(255) = 'Insert tabla '  + UPPER(@tabla) + '; Motivo: '  + UPPER(ERROR_MESSAGE()),
 				@Severity int = ERROR_SEVERITY(),
@@ -517,6 +539,10 @@ BEGIN
 END
 GO
 
+
+-- Definición de procedure que es el encargado de migrar las tablas “principales”, 
+-- aquellas que requieran varios JOINS para su inserción y tengan un volumen de 
+-- datos alto respecto a las restantes
 CREATE PROCEDURE MONKEY_D_BASE.Sp_LlenadoPrincipales
 AS 
 BEGIN
@@ -616,7 +642,6 @@ BEGIN
 			e.legajo
 		FROM gd_esquema.Maestra m
 		JOIN MONKEY_D_BASE.Orden_Trabajo ot ON ot.fecha = m.ORDEN_TRABAJO_FECHA 
-		--JOIN MONKEY_D_BASE.Taller tal ON ot.taller_id = tal.id AND tal.mail = m.TALLER_MAIL AND tal.direccion = m.TALLER_DIRECCION
 		JOIN MONKEY_D_BASE.Camion c ON ot.camion_id = c.id AND c.patente = m.CAMION_PATENTE
 		JOIN MONKEY_D_BASE.Tarea t ON t.descripcion = m.TAREA_DESCRIPCION
 		JOIN MONKEY_D_BASE.Empleado e ON e.legajo = m.MECANICO_NRO_LEGAJO;
@@ -625,11 +650,12 @@ BEGIN
 
 	END TRY
 
-	BEGIN CATCH
+	BEGIN CATCH -- Esta porción es la que contempla los errores en caso de ocurrir
 		
 		DECLARE @Message varchar(255) = 'Insert tabla '  + UPPER(@tabla) + '; Motivo: '  + UPPER(ERROR_MESSAGE()),
 				@Severity int = ERROR_SEVERITY(),
 				@State smallint = ERROR_STATE()					
+
 		RAISERROR(@Message, @Severity, @State);
 
 	END CATCH
@@ -648,13 +674,13 @@ BEGIN TRY
 
 	EXEC MONKEY_D_BASE.Sp_LlenadoPrincipales;		-- Viaje;Viaje_Paquete;Orden_trabajo;Orden_Tarea
 	
-	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre;
+	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre; -- Se imprime por pantalla el resultado (para control interno)
 
 END TRY
 
 BEGIN CATCH
 
-	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre;
+	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre; -- Se imprime por pantalla el resultado (para control interno)
 
 	THROW;
 

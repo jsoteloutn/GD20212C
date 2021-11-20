@@ -130,6 +130,7 @@ BEGIN
 	DECLARE @tabla VARCHAR(255);
 
 	BEGIN TRY
+
 /*DIMENSIONES*/		
 --Tiempo
 		SET @tabla = 'BI_Tiempo';
@@ -162,6 +163,7 @@ BEGIN
 			) AS tabla ORDER BY tabla.VIAJE_FECHA_INICIO;
 
 		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
 --Rango_Edad
 		SET @tabla = 'BI_Rango_Edad';
 
@@ -181,7 +183,6 @@ BEGIN
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
 /*HECHOS*/
-
 --Promedio x Tarea x Taller
         SET @tabla = 'BI_Promedio_x_Tarea_x_Taller';
 
@@ -226,6 +227,7 @@ BEGIN
         GROUP BY cm.id,cm.descripcion,t.id;
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
 --Máximo tiempo fuera de servicio de cada camión por cuatrimestre
         SET @tabla = 'BI_camion_x_cuatri_sin_servicio';
 
@@ -260,7 +262,7 @@ BEGIN
 
         DROP TABLE #camionSinServicio;
 
-	--Costo total de mantenimiento por camión, por taller, por cuatrimestre
+--Costo total de mantenimiento por camión, por taller, por cuatrimestre
         SET @tabla = 'BI_camion_x_taller_x_cuatri_costo';
 
         SELECT 

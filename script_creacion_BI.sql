@@ -17,7 +17,7 @@ DECLARE objetos CURSOR FOR
 	FROM sys.objects
 	WHERE schema_id = SCHEMA_ID('MONKEY_D_BASE') 
 	AND type IN ('F', 'P', 'U', 'V', 'FN' )
-	AND name like '%BI%'
+	AND name like 'BI_%'
 	ORDER BY type;
 
 OPEN objetos;
@@ -120,24 +120,9 @@ CREATE TABLE MONKEY_D_BASE.BI_costo_mantenimiento(
 GO
 
 /********************
-*** CREACION SP *****
+*** CREACIÓN SP *****
 *********************/
--- auxiliares
-IF EXISTS ( SELECT 1 FROM sys.objects WHERE type = 'P' AND schema_id = SCHEMA_ID('MONKEY_D_BASE') AND name = 'Sp_registrarTabla')
-	DROP PROCEDURE MONKEY_D_BASE.Sp_registrarTabla;
-GO
-
-CREATE PROCEDURE MONKEY_D_BASE.Sp_registrarTabla (@tabla VARCHAR(255))
-AS
-BEGIN
-	INSERT INTO MONKEY_D_BASE.ControlTablas
-	SELECT 	@tabla,
-			@@ROWCOUNT;
-END
-
-GO
-
--- llenado de tablas BI
+-- migracion de datos a las tablas BI
 CREATE PROCEDURE MONKEY_D_BASE.BI_SP_migracion_olap
 AS
 BEGIN
@@ -145,7 +130,8 @@ BEGIN
 	DECLARE @tabla VARCHAR(255);
 
 	BEGIN TRY
-		
+/*DIMENSIONES*/		
+--Tiempo
 		SET @tabla = 'BI_Tiempo';
 
 		INSERT INTO MONKEY_D_BASE.BI_Tiempo (
@@ -176,7 +162,7 @@ BEGIN
 			) AS tabla ORDER BY tabla.VIAJE_FECHA_INICIO;
 
 		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
-
+--Rango_Edad
 		SET @tabla = 'BI_Rango_Edad';
 
 		INSERT INTO MONKEY_D_BASE.BI_Rango_Edad(
@@ -194,6 +180,9 @@ BEGIN
 		
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
+/*HECHOS*/
+
+--Promedio x Tarea x Taller
         SET @tabla = 'BI_Promedio_x_Tarea_x_Taller';
 
         INSERT INTO MONKEY_D_BASE.BI_Promedio_x_Tarea_x_Taller (
@@ -215,6 +204,7 @@ BEGIN
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
+--Las 5 tareas que más se realizan por modelo de camión
         SET @tabla = 'BI_Tareas_mas_realizadas_x_Modelo_Camion';
 
         INSERT INTO MONKEY_D_BASE.BI_Tareas_mas_realizadas_x_Modelo_Camion (
@@ -236,7 +226,7 @@ BEGIN
         GROUP BY cm.id,cm.descripcion,t.id;
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
-
+--Máximo tiempo fuera de servicio de cada camión por cuatrimestre
         SET @tabla = 'BI_camion_x_cuatri_sin_servicio';
 
         SELECT 
@@ -270,6 +260,7 @@ BEGIN
 
         DROP TABLE #camionSinServicio;
 
+	--Costo total de mantenimiento por camión, por taller, por cuatrimestre
         SET @tabla = 'BI_camion_x_taller_x_cuatri_costo';
 
         SELECT 
@@ -288,7 +279,6 @@ BEGIN
         INNER JOIN MONKEY_D_BASE.Orden_tarea ott ON ot.id = ott.orden_id
         INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON ott.fecha_fin_real = t.fecha
         INNER JOIN MONKEY_D_BASE.Empleado e ON ott.mecanico_legajo = e.legajo;
-
 
         INSERT INTO MONKEY_D_BASE.BI_camion_x_taller_x_cuatri_costo (
             camion_id, 
@@ -311,8 +301,9 @@ BEGIN
         
         DROP TABLE #CamionCosto
 
+--Ganancia por camión
         SET @tabla = 'BI_Ingresos_por_camion';
-
+--Ingresos
         INSERT INTO MONKEY_D_BASE.BI_Ingresos_por_camion (camion_id,ingresos)
         SELECT 
             v.camion_codigo,
@@ -324,6 +315,7 @@ BEGIN
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
+--Costo de viaje
         SET @tabla = 'BI_Costo_viaje';
         
         INSERT INTO MONKEY_D_BASE.BI_Costo_viaje (camion_id,costo)
@@ -338,6 +330,7 @@ BEGIN
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
+--Costo de mantenimiento
         SET @tabla = 'BI_costo_mantenimiento';
 
         INSERT INTO MONKEY_D_BASE.BI_costo_mantenimiento (
@@ -411,7 +404,7 @@ AS
 
 GO
 
---Las 5 tareas que más se realizan por modelo de camión
+--Las 5 tareas que más se realizan por modelo de camián
 CREATE VIEW MONKEY_D_BASE.BI_VW_Tareas_mas_realizadas_x_Modelo_Camion 
 AS
 	SELECT 
@@ -436,7 +429,7 @@ AS
 	SELECT 
 		CONVERT(VARCHAR(3), re.edad_ini) + ' - ' +
 		CONVERT(VARCHAR(3), re.edad_fin) rango_etario,
-		AVG(e.costo_hora) as costo_promedio
+		AVG(e.costo_hora) as costo_promedio		--Se asume que el costo por hora de los empleados no cambio en el tiempo
 	FROM 
 		MONKEY_D_BASE.Empleado e
 	INNER JOIN MONKEY_D_BASE.Viaje v ON v.chofer_legajo = e.legajo
@@ -446,7 +439,7 @@ AS
 	GROUP BY 
 		CONVERT(VARCHAR(3), re.edad_ini) + ' - ' +
 		CONVERT(VARCHAR(3), re.edad_fin);
-	--Se asume que el costo por hora de los empleados no cambio en el tiempo
+	
 GO
 
 --Los 10 materiales más utilizados por taller
@@ -478,16 +471,16 @@ CREATE VIEW MONKEY_D_BASE.BI_VW_Materiales_mas_usados
 AS
 	SELECT
 		t.nombre taller,
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (0, ot.taller_id) as [1° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (1, ot.taller_id) as [2° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (2, ot.taller_id) as [3° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (3, ot.taller_id) as [4° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (4, ot.taller_id) as [5° Material mas usado],
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (5, ot.taller_id) as [6° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (6, ot.taller_id) as [7° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (7, ot.taller_id) as [8° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (8, ot.taller_id) as [9° Material mas usado], 
-		MONKEY_D_BASE.BI_MATERIAL_X_USADO (9, ot.taller_id) as [10° Material mas usado] 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (0, ot.taller_id) as [1� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (1, ot.taller_id) as [2� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (2, ot.taller_id) as [3� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (3, ot.taller_id) as [4� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (4, ot.taller_id) as [5� Material mas usado],
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (5, ot.taller_id) as [6� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (6, ot.taller_id) as [7� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (7, ot.taller_id) as [8� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (8, ot.taller_id) as [9� Material mas usado], 
+		MONKEY_D_BASE.BI_MATERIAL_X_USADO (9, ot.taller_id) as [10� Material mas usado] 
 	FROM     
 		MONKEY_D_BASE.Orden_Trabajo ot
 	INNER JOIN MONKEY_D_BASE.Taller t ON ot.taller_id = t.id
@@ -551,14 +544,3 @@ BEGIN CATCH
 END CATCH
 
 GO
-
-/*
-SELECT * FROM MONKEY_D_BASE.BI_VW_camion_sin_servicio
-SELECT * FROM MONKEY_D_BASE.BI_VW_camion_costo_total
-SELECT * FROM MONKEY_D_BASE.BI_VW_Desvio_Promedio_x_Tarea_x_Taller 
-SELECT * FROM MONKEY_D_BASE.BI_VW_Tareas_mas_realizadas_x_Modelo_Camion 
-SELECT * FROM MONKEY_D_BASE.BI_VW_Costo_Promedio_x_RangoEtario 
-SELECT * FROM MONKEY_D_BASE.BI_VW_Materiales_mas_usados 
-SELECT * FROM MONKEY_D_BASE.BI_VW_Facturacion_Total_x_Recorrido_x_Cuatrimestre 
-SELECT * FROM MONKEY_D_BASE.BI_VW_Ganancia_x_camion 
-*/

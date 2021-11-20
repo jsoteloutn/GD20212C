@@ -53,14 +53,16 @@ DEALLOCATE objetos;
 GO
 
 /************************
-*** CREACIÓN DE TABLAS **
+*** CREACION DE TABLAS **
 *************************/
+-- Creacion de tabla de que guarda los datos correspondiente con la dimension Rango Edad 
 CREATE TABLE MONKEY_D_BASE.BI_Rango_Edad (
 	id					INT IDENTITY PRIMARY KEY NOT NULL,
 	edad_ini			INT,
 	edad_fin			INT
     );	
 
+-- Creacion de tabla que guarda los datos correspondiente con la dimension Tiempo
 CREATE TABLE MONKEY_D_BASE.BI_Tiempo (
 	fecha				DATETIME2 PRIMARY KEY NOT NULL,
 	dia					INT NOT NULL,
@@ -68,7 +70,7 @@ CREATE TABLE MONKEY_D_BASE.BI_Tiempo (
 	cuarto				CHAR(2) NOT NULL,
 	anio				INT NOT NULL
     );
-
+-- Creacion de tabla que guarda los datos correspondiente con el promedio de dias de demora de realizacion de tareas por taller
 CREATE TABLE MONKEY_D_BASE.BI_Promedio_x_Tarea_x_Taller (
 	taller_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Taller(id),
 	tarea_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Tarea(id),
@@ -76,7 +78,7 @@ CREATE TABLE MONKEY_D_BASE.BI_Promedio_x_Tarea_x_Taller (
 	promedio				decimal(12,2)
     CONSTRAINT PK_BI_Promedio_x_Tarea_x_Taller PRIMARY KEY (taller_id, tarea_id)
     );
-
+-- Creacion de tabla que guarda los datos correspondiente con la cantidad de tareas realizadas por modelo de camion
 CREATE TABLE MONKEY_D_BASE.BI_Tareas_mas_realizadas_x_Modelo_Camion (
 	modelo_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion_Modelo(id),
 	modelo_desc			nvarchar(255) NOT NULL,
@@ -84,26 +86,26 @@ CREATE TABLE MONKEY_D_BASE.BI_Tareas_mas_realizadas_x_Modelo_Camion (
 	cantidad			INT NOT NULL
     CONSTRAINT PK_BI_Tareas_mas_realizadas_x_Modelo_Camion PRIMARY KEY (modelo_id, tarea_id)
     );
-
+-- Creacion de tabla que guarda los datos correspondiente con el total de ingresos por cada camion
 CREATE TABLE MONKEY_D_BASE.BI_Ingresos_por_camion (
 	camion_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
 	ingresos			decimal(18,2)
     CONSTRAINT PK_BI_Ingresos_por_camion PRIMARY KEY (camion_id)
     );
-
+-- Creacion de tabla que guarda los datos correspondiente con el costos total de los viajes de cada camion 
 CREATE TABLE MONKEY_D_BASE.BI_Costo_viaje (
 	camion_id			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
 	costo				decimal(18,2)
     CONSTRAINT PK_BI_Costo_viaje PRIMARY KEY (camion_id)
     );
-
+-- Creacion de tabla que guarda los datos correspondiente con el maximo tiempo fuera de servicio de cada camion por cuatrimestre
 CREATE TABLE MONKEY_D_BASE.BI_camion_x_cuatri_sin_servicio(
 	camion_id INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
 	cuarto CHAR(2) NOT NULL,
 	tiempo_sin_servicio int NOT NULL,
 	CONSTRAINT PK_BI_camion_x_cuatri_sin_servicio PRIMARY KEY (camion_id, cuarto)
 	);
-
+-- Creacion de tabla que guarda los datos correspondiente con el costo de mantenimiendo de cada camion por taller y cuatrimestre
 CREATE TABLE MONKEY_D_BASE.BI_camion_x_taller_x_cuatri_costo(
     camion_id INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
     cuarto char(2) NOT NULL,
@@ -111,7 +113,7 @@ CREATE TABLE MONKEY_D_BASE.BI_camion_x_taller_x_cuatri_costo(
     costo_total DECIMAL(18,2) NOT NULL
     CONSTRAINT PK_BI_camion_costo PRIMARY KEY (camion_id, cuarto, taller_id)
 	);
-
+-- Creacion de tabla que guarda los datos correspondiente con el costo total de mantenimiendo de cada camion
 CREATE TABLE MONKEY_D_BASE.BI_costo_mantenimiento(
     camion_id   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
     costo_total decimal(38, 2) NULL
@@ -120,9 +122,11 @@ CREATE TABLE MONKEY_D_BASE.BI_costo_mantenimiento(
 GO
 
 /********************
-*** CREACIÓN SP *****
+*** CREACION SP *****
 *********************/
--- migracion de datos a las tablas BI
+-- llenado de tablas BI
+
+-- Este procedimiento es el encargado de realizar la migración de los datos correspondientes al modelo relacional transaccional al modelo de inteligencia de negocios.
 CREATE PROCEDURE MONKEY_D_BASE.BI_SP_migracion_olap
 AS
 BEGIN
@@ -205,7 +209,7 @@ BEGIN
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
---Las 5 tareas que más se realizan por modelo de camión
+--Las 5 tareas que mas se realizan por modelo de camion
         SET @tabla = 'BI_Tareas_mas_realizadas_x_Modelo_Camion';
 
         INSERT INTO MONKEY_D_BASE.BI_Tareas_mas_realizadas_x_Modelo_Camion (
@@ -228,7 +232,7 @@ BEGIN
 
         EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
 
---Máximo tiempo fuera de servicio de cada camión por cuatrimestre
+--Maximo tiempo fuera de servicio de cada camion por cuatrimestre
         SET @tabla = 'BI_camion_x_cuatri_sin_servicio';
 
         SELECT 
@@ -262,7 +266,7 @@ BEGIN
 
         DROP TABLE #camionSinServicio;
 
---Costo total de mantenimiento por camión, por taller, por cuatrimestre
+--Costo total de mantenimiento por camion, por taller, por cuatrimestre
         SET @tabla = 'BI_camion_x_taller_x_cuatri_costo';
 
         SELECT 
@@ -303,7 +307,7 @@ BEGIN
         
         DROP TABLE #CamionCosto
 
---Ganancia por camión
+--Ganancia por camion
         SET @tabla = 'BI_Ingresos_por_camion';
 --Ingresos
         INSERT INTO MONKEY_D_BASE.BI_Ingresos_por_camion (camion_id,ingresos)
@@ -350,7 +354,7 @@ BEGIN
 
 	END TRY
 
-	BEGIN CATCH
+	BEGIN CATCH -- Esta porción es la que contempla los errores en caso de ocurrir
 		
 		DECLARE @Message varchar(255) = 'Insert tabla '  + UPPER(@tabla) + '; Motivo: '  + UPPER(ERROR_MESSAGE()),
 				@Severity int = ERROR_SEVERITY(),
@@ -363,9 +367,9 @@ END
 GO
 
 /************************
-*** CREACIÓN DE VISTAS **
+*** CREACION DE VISTAS **
 *************************/
---Máximo tiempo fuera de servicio de cada camión por cuatrimestre
+--Maximo tiempo fuera de servicio de cada camion por cuatrimestre
 CREATE VIEW MONKEY_D_BASE.BI_VW_camion_sin_servicio
 AS
     SELECT
@@ -378,7 +382,7 @@ AS
 
 GO
 
---Costo total de mantenimiento por camión, por taller, por cuatrimestre
+--Costo total de mantenimiento por camion, por taller, por cuatrimestre
 CREATE VIEW MONKEY_D_BASE.BI_VW_camion_costo_total
 AS
     SELECT
@@ -406,7 +410,7 @@ AS
 
 GO
 
---Las 5 tareas que más se realizan por modelo de camián
+--Las 5 tareas que mas se realizan por modelo de camian
 CREATE VIEW MONKEY_D_BASE.BI_VW_Tareas_mas_realizadas_x_Modelo_Camion 
 AS
 	SELECT 
@@ -444,7 +448,8 @@ AS
 	
 GO
 
---Los 10 materiales más utilizados por taller
+-- funcion que utilizamos para la creacion de la vista BI_VW_Materiales_mas_usados
+-- dado un taller devuelve el material mas usado por ese taller
 CREATE FUNCTION MONKEY_D_BASE.BI_MATERIAL_X_USADO (
 	@ORDEN_MAS_USADO INT, 
 	@TALLER_ID INT)
@@ -468,7 +473,7 @@ BEGIN
 END
 
 GO
-
+--Los 10 materiales mas utilizados por taller
 CREATE VIEW MONKEY_D_BASE.BI_VW_Materiales_mas_usados 
 AS
 	SELECT
@@ -492,7 +497,7 @@ AS
 
 GO
 
---Facturación total por recorrido por cuatrimestre
+--Facturacion total por recorrido por cuatrimestre
 CREATE VIEW MONKEY_D_BASE.BI_VW_Facturacion_Total_x_Recorrido_x_Cuatrimestre 
 AS
 	SELECT 
@@ -512,7 +517,7 @@ AS
 
 GO
 
---Ganancia por camión
+--Ganancia por camion
 CREATE VIEW MONKEY_D_BASE.BI_VW_Ganancia_x_camion 
 AS
 	SELECT 
@@ -531,15 +536,17 @@ BEGIN TRY
 	
 	DELETE MONKEY_D_BASE.ControlTablas WHERE 1=1; -- borro los datos de la tabla de control
 
-	EXEC MONKEY_D_BASE.BI_SP_migracion_olap;		
+	EXEC MONKEY_D_BASE.BI_SP_migracion_olap;	-- BI_camion_x_cuatri_sin_servicio;BI_camion_x_taller_x_cuatri_costo;BI_costo_mantenimiento
+												-- BI_Costo_viaje;BI_Ingresos_por_camion;BI_Promedio_x_Tarea_x_Taller;BI_Rango_Edad;
+												-- BI_Tareas_mas_realizadas_x_Modelo_Camion;BI_Tiempo		
 
-	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre;
+	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre;	-- Se imprime por pantalla el resultado (para control interno)
 
 END TRY
 
-BEGIN CATCH
+BEGIN CATCH	-- Esta porción es la que contempla los errores en caso de ocurrir. Corta la ejecución.
 
-	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre;
+	SELECT * FROM MONKEY_D_BASE.ControlTablas ORDER BY nombre;	-- Se imprime por pantalla el resultado (para control interno)
 
 	THROW;
 

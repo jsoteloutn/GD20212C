@@ -54,7 +54,44 @@ GO
 /************************
 *** CREACION DE TABLAS **
 *************************/
--- Creacion de tabla de que guarda los datos correspondiente con la dimension Rango Edad 
+-- Creación de tabla que guarda los datos correspondientes con la dimension Tarea
+CREATE TABLE MONKEY_D_BASE.BI_Tarea (
+	id				INT PRIMARY KEY,
+	descripcion		NVARCHAR(255) NOT NULL
+);
+
+-- Creación de tabla que guarda los datos correspondientes con la dimension Recorrido
+CREATE TABLE MONKEY_D_BASE.BI_Recorrido (
+	id				INT PRIMARY KEY,
+	ciudad_origen	NVARCHAR(255) NOT NULL,
+	ciudad_destino	NVARCHAR(255) NOT NULL
+);
+
+-- Creación de tabla que guarda los datos correspondientes con la dimension taller
+CREATE TABLE MONKEY_D_BASE.BI_Taller (
+	id			INT PRIMARY KEY,
+	nombre		NVARCHAR(255)	NOT NULL
+);
+
+-- Creación de tabla que guarda los datos correspondientes con la dimension Marca							
+CREATE TABLE MONKEY_D_BASE.BI_Marca (
+	id				INT PRIMARY KEY,
+	descripcion		NVARCHAR(255) NOT NULL 
+);
+
+-- Creación de tabla que guarda los datos correspondientes con la dimension Camion Modelo
+CREATE TABLE MONKEY_D_BASE.BI_Camion_Modelo (
+	id					INT PRIMARY KEY,
+	descripcion			NVARCHAR(255) NOT NULL
+);
+
+-- Creación de tabla que guarda los datos correspondientes con la dimension Camion
+CREATE TABLE MONKEY_D_BASE.BI_Camion (
+	id			INT PRIMARY KEY,
+	patente		NVARCHAR(255) NOT NULL
+);
+
+-- Creacion de tabla que guarda los datos correspondiente con la dimension Rango Edad 
 CREATE TABLE MONKEY_D_BASE.BI_Rango_Edad (
 	id					INT IDENTITY PRIMARY KEY NOT NULL,
 	edad_ini			INT,
@@ -68,34 +105,37 @@ CREATE TABLE MONKEY_D_BASE.BI_Tiempo (
 			anio                INT NOT NULL,
 			fecha_inicio_cuatri DATE NOT NULL,
 			fecha_fin_cuatri    DATE NOT NULL
-			);
+);
+
 --Creación de la tabla de Hecho de Ordenes Tarea
 CREATE TABLE MONKEY_D_BASE.BI_Hechos_Ordenes_tarea (
 		tiempo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tiempo(id_tiempo),
-		taller_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Taller(id),
-		tarea_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Tarea(id),
-		camion_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
-		modelo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion_Modelo(id),
-		marca_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Marca(id),
+		taller_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Taller(id),
+		tarea_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tarea(id),
+		camion_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion(id),
+		modelo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion_Modelo(id),
+		marca_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Marca(id),
 		legajo_empleado			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Empleado(legajo),	
 		camion_dias_sin_servicio	INT NOT NULL,
 		costo					decimal(18,2) NOT NULL,
 		desvio_promedio			decimal(12,2) NOT NULL,
-		CONSTRAINT PK_BI_Hechos_Ordenes_tarea PRIMARY KEY (tiempo_id, taller_id, tarea_id, camion_id, legajo_empleado)
-	);
+		CONSTRAINT PK_BI_Hechos_Ordenes_tarea PRIMARY KEY (tiempo_id, taller_id, tarea_id, camion_id, modelo_id, marca_id, legajo_empleado)
+);
+
 --Creación de la tabla de hecho para Viajes
 CREATE TABLE MONKEY_D_BASE.BI_Hechos_Viajes (
 			tiempo_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tiempo(id_tiempo),
-			camion_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
-			marca_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Marca(id),
-			modelo_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion_modelo(id),
-			recorrido_id                INT FOREIGN KEY REFERENCES MONKEY_D_BASE.recorrido(id),
+			camion_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion(id),
+			marca_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Marca(id),
+			modelo_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion_modelo(id),
+			recorrido_id                INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_recorrido(id),
 			rango_edad_id               INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Rango_Edad(id),
-			facturacion_total           INT NOT NULL,
+			facturacion_total           DECIMAL(18,2) NOT NULL,
 			costo_chofer                DECIMAL(18,2) NOT NULL,
-			costo_combustible           DECIMAL(12,2) NOT NULL,
+			costo_combustible           DECIMAL(18,2) NOT NULL,
 			CONSTRAINT PK_BI_Hechos_Viajes PRIMARY KEY (tiempo_id, camion_id, marca_id, modelo_id,  recorrido_id, rango_edad_id)
-			);
+);
+
 GO
 /********************
 *** CREACION SP *****
@@ -111,6 +151,60 @@ BEGIN
 	BEGIN TRY
 
 /*DIMENSIONES*/		
+--Tarea
+	    SET @tabla = 'BI_Tarea';
+
+        INSERT INTO MONKEY_D_BASE.BI_Tarea (id, descripcion)
+        SELECT id, descripcion
+        FROM Tarea
+        
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+--Recorrido
+	    SET @tabla = 'BI_Recorrido';
+
+        INSERT INTO MONKEY_D_BASE.BI_Recorrido (id, ciudad_origen, ciudad_destino)
+        SELECT id, ciudad_origen, ciudad_destino
+        FROM Recorrido
+        
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+--Taller
+        SET @tabla = 'BI_Taller';
+
+        INSERT INTO MONKEY_D_BASE.BI_Taller (id, nombre)
+        SELECT id, nombre
+        FROM Taller
+        
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+--Marca
+        SET @tabla = 'BI_Marca';
+
+        INSERT INTO MONKEY_D_BASE.BI_Marca (id, descripcion)
+        SELECT id, descripcion
+        FROM Marca
+        
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+--Modelo
+        SET @tabla = 'BI_Camion_Modelo';
+
+        INSERT INTO MONKEY_D_BASE.BI_Camion_Modelo (id, descripcion)
+        SELECT id, descripcion
+        FROM Camion_Modelo
+        
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+--Camion
+        SET @tabla = 'BI_Camion';
+
+        INSERT INTO MONKEY_D_BASE.BI_Camion (id, patente)
+        SELECT id, patente
+        FROM Camion
+        
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;        
+
 --Tiempo
 		SET @tabla = 'BI_Tiempo';
 
@@ -123,8 +217,8 @@ BEGIN
 			YEAR(fecha_inicio) anio,
 			CASE
 			WHEN MONTH(fecha_inicio) BETWEEN 1 AND 4 THEN CONVERT(DATE, CONVERT(CHAR(4),YEAR(fecha_inicio)) + '0101')
-			WHEN MONTH(fecha_inicio) BETWEEN 5 AND 8 THEN CONVERT(DATE, CONVERT(CHAR(4),YEAR(fecha_inicio)) + '0105')
-			WHEN MONTH(fecha_inicio) BETWEEN 9 AND 12 THEN CONVERT(DATE, CONVERT(CHAR(4),YEAR(fecha_inicio)) + '0109') 
+			WHEN MONTH(fecha_inicio) BETWEEN 5 AND 8 THEN CONVERT(DATE, CONVERT(CHAR(4),YEAR(fecha_inicio)) + '0501')
+			WHEN MONTH(fecha_inicio) BETWEEN 9 AND 12 THEN CONVERT(DATE, CONVERT(CHAR(4),YEAR(fecha_inicio)) + '0901') 
 			END fecha_inicio_cuatrimestre,
 			CASE
 			WHEN MONTH(fecha_inicio) BETWEEN 1 AND 4 THEN CONVERT(DATE, CONVERT(CHAR(4),YEAR(fecha_inicio)) + '0430')
@@ -207,45 +301,80 @@ BEGIN
 		Group by  tal.id,  tar.id, cam.id,cm.id,cm.marca_id, emp.legajo, tiemp.id_tiempo
 		order by 1, 2, 3 ,4, 5;
 		
+		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
 		DROP TABLE #camionSinServicio2;
 
-		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
-
-		SET @tabla = 'BI_Hechos_Viajes'
+		SET @tabla = 'BI_Hechos_Viajes';
 
 --Insert para la tabla de hecho de Viaje
-		INSERT INTO MONKEY_D_BASE.BI_Hechos_Viajes
-		SELECT 
-			t.id_tiempo tiempo_id,
-			v.camion_codigo,
-			c.modelo_id,
-			cm.marca_id,
-			v.recorrido_codigo,
-			r.id rango_edad_id,
-			SUM(vp.paquete_cantidad * vp.paquete_precio_hist) + v.precio_recorrido_his facturacion_Total,
-			SUM(((DATEDIFF(HOUR, v.fecha_inicio, v.fecha_fin) * e.costo_hora))) costo_chofer,
-			SUM(v.combustible_consumido) * 100 costo_combustible,
-			COUNT(DISTINCT e.legajo),
-			COUNT(DISTINCT v.id)
-		FROM 
-			MONKEY_D_BASE.Viaje v
-			INNER JOIN MONKEY_D_BASE.Viaje_Paquete vp ON vp.viaje_id = v.id
-			INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON v.fecha_fin BETWEEN t.fecha_inicio_cuatri AND t.fecha_fin_cuatri AND YEAR(v.fecha_fin) = t.anio
-			INNER JOIN MONKEY_D_BASE.Camion c ON c.id = v.camion_codigo
-			INNER JOIN MONKEY_D_BASE.Camion_modelo cm ON cm.id = c.modelo_id
-			INNER JOIN MONKEY_D_BASE.Empleado e ON v.chofer_legajo = e.legajo
-			INNER JOIN MONKEY_D_BASE.BI_Rango_Edad r ON DATEDIFF(YEAR, e.fecha_nacimiento, v.fecha_fin) BETWEEN r.edad_ini AND r.edad_fin
-		GROUP BY t.id_tiempo,
-				v.camion_codigo,
-				c.modelo_id,
-				cm.marca_id,
-				v.recorrido_codigo,
-				r.id,
-				v.precio_recorrido_his,
-				e.legajo
-		ORDER BY 2, 1;
+        INSERT INTO MONKEY_D_BASE.BI_Hechos_Viajes
+        SELECT 
+            t.id_tiempo tiempo_id,
+            v.camion_codigo,
+            cm.marca_id,
+            c.modelo_id,
+            v.recorrido_codigo,
+            r.id rango_edad_id,
+            0,                      -- ponemos 0 para luego actualizar
+            SUM(((DATEDIFF(HOUR, v.fecha_inicio, v.fecha_fin) * e.costo_hora))) costo_chofer,
+            SUM(v.combustible_consumido) * 100 costo_combustible
+        FROM 
+            MONKEY_D_BASE.Viaje v
+            INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON v.fecha_fin BETWEEN t.fecha_inicio_cuatri AND t.fecha_fin_cuatri 
+                                                    AND YEAR(v.fecha_fin) = t.anio
+            INNER JOIN MONKEY_D_BASE.Camion c ON c.id = v.camion_codigo
+            INNER JOIN MONKEY_D_BASE.Camion_modelo cm ON cm.id = c.modelo_id
+            INNER JOIN MONKEY_D_BASE.Empleado e ON v.chofer_legajo = e.legajo
+            INNER JOIN MONKEY_D_BASE.BI_Rango_Edad r ON DATEDIFF(YEAR, e.fecha_nacimiento, v.fecha_fin) BETWEEN r.edad_ini AND r.edad_fin
+        GROUP BY     t.id_tiempo,
+                    v.camion_codigo,
+                    cm.marca_id,
+                    c.modelo_id,
+                    v.recorrido_codigo,
+                    r.id;
+        
+        -- tabla auxiliar para calcular el total facturado
+        SELECT 
+            t.id_tiempo tiempo_id,
+            v.camion_codigo,
+            c.modelo_id,
+            cm.marca_id,
+            v.recorrido_codigo,
+            r.id rango_edad_id,
+            SUM(vp.paquete_cantidad * vp.paquete_precio_hist) + v.precio_recorrido_his facturacion_Total
+        INTO #tmp
+        FROM 
+            MONKEY_D_BASE.Viaje v
+            INNER JOIN MONKEY_D_BASE.Viaje_Paquete vp ON vp.viaje_id = v.id
+            INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON v.fecha_fin BETWEEN t.fecha_inicio_cuatri AND t.fecha_fin_cuatri 
+                                                    AND YEAR(v.fecha_fin) = t.anio
+            INNER JOIN MONKEY_D_BASE.Camion c ON c.id = v.camion_codigo
+            INNER JOIN MONKEY_D_BASE.Camion_modelo cm ON cm.id = c.modelo_id
+            INNER JOIN MONKEY_D_BASE.Empleado e ON v.chofer_legajo = e.legajo
+            INNER JOIN MONKEY_D_BASE.BI_Rango_Edad r ON DATEDIFF(YEAR, e.fecha_nacimiento, v.fecha_fin) BETWEEN r.edad_ini AND r.edad_fin
+        GROUP BY    t.id_tiempo ,
+                    v.camion_codigo,
+                    c.modelo_id,
+                    cm.marca_id,
+                    v.recorrido_codigo,
+                    r.id,
+                    v.precio_recorrido_his;
 
-		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+            -- actualizo la facturacion total de BI_Hechos_Viajes
+            UPDATE MONKEY_D_BASE.BI_Hechos_Viajes
+            SET facturacion_Total = t.facturacion_Total
+            FROM MONKEY_D_BASE.BI_Hechos_Viajes v , #tmp t
+            WHERE v.tiempo_id = t.tiempo_id
+            AND v.camion_id = t.camion_codigo
+            AND v.marca_id = t.marca_id
+            AND v.modelo_id = t.modelo_id
+            AND v.recorrido_id = t.recorrido_codigo
+            AND v.rango_edad_id = t.rango_edad_id;
+
+			EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+            DROP TABLE #tmp;
 
 		END TRY
 
@@ -273,7 +402,7 @@ AS
         max (hechos_ot.camion_dias_sin_servicio) as maximo_dias_sin_servicio
     FROM 
         MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot
-		JOIN MONKEY_D_BASE.Camion c ON hechos_ot.camion_id = c.id    
+		JOIN MONKEY_D_BASE.BI_Camion c ON hechos_ot.camion_id = c.id    
 		JOIN MONKEY_D_BASE.BI_Tiempo t ON t.id_tiempo = hechos_ot.tiempo_id
 	Group by   c.patente,t.cuatrimestre;
 
@@ -289,8 +418,8 @@ AS
         Sum(hechos_ot.costo) AS costo
     FROM 
         MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot
-		JOIN MONKEY_D_BASE.Camion c ON hechos_ot.camion_id = c.id   
-		JOIN MONKEY_D_BASE.Taller t ON hechos_ot.taller_id = t.id   
+		JOIN MONKEY_D_BASE.BI_Camion c ON hechos_ot.camion_id = c.id   
+		JOIN MONKEY_D_BASE.BI_Taller t ON hechos_ot.taller_id = t.id   
 		JOIN MONKEY_D_BASE.BI_Tiempo ti ON ti.id_tiempo = hechos_ot.tiempo_id
 	GROUP BY 
 		c.patente,
@@ -305,29 +434,29 @@ AS
 		t.nombre taller,
 		tt.descripcion tarea,
 		AVG(hechos_ot.desvio_promedio) as desvio_promedio 
-        From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot
-		JOIN MONKEY_D_BASE.Taller t ON t.id = hechos_ot.taller_id
-		JOIN MONKEY_D_BASE.Tarea tt ON tt.id = hechos_ot.tarea_id
-		Group by t.nombre,
-		tt.descripcion;
+        FROM MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot
+		JOIN MONKEY_D_BASE.BI_Taller t ON t.id = hechos_ot.taller_id
+		JOIN MONKEY_D_BASE.BI_Tarea tt ON tt.id = hechos_ot.tarea_id
+		GROUP BY    t.nombre,
+		            tt.descripcion;
 GO
 
 --Las 5 tareas que mas se realizan por modelo de camión
 CREATE VIEW MONKEY_D_BASE.BI_VW_Tareas_mas_realizadas_x_Modelo_Camion2 
 AS
     SELECT    cm.descripcion as Modelo, 
-            (Select TOP 1 hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.Camion c2 ON hechos_ot2.camion_id = c2.id
-             where c2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc) as Tarea_mas_realizada,
-             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.Camion c2 ON hechos_ot2.camion_id = c2.id
-             where c2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY) as Segunda_Tarea_mas_realizada,
-             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.Camion c2 ON hechos_ot2.camion_id = c2.id
-             where c2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 2 ROWS FETCH NEXT 1 ROWS ONLY) as Tercera_Tarea_mas_realizada,
-             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.Camion c2 ON hechos_ot2.camion_id = c2.id
-             where c2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 3 ROWS FETCH NEXT 1 ROWS ONLY) as Cuarta_Tarea_mas_realizada,
-             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.Camion c2 ON hechos_ot2.camion_id = c2.id
-             where c2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY) as Quinta_Tarea_mas_realizada
+            (Select TOP 1 hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.BI_Camion c2 ON hechos_ot2.camion_id = c2.id
+             where hechos_ot2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc) as Tarea_mas_realizada,
+             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.BI_Camion c2 ON hechos_ot2.camion_id = c2.id
+             where hechos_ot2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 1 ROWS FETCH NEXT 1 ROWS ONLY) as Segunda_Tarea_mas_realizada,
+             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.BI_Camion c2 ON hechos_ot2.camion_id = c2.id
+             where hechos_ot2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 2 ROWS FETCH NEXT 1 ROWS ONLY) as Tercera_Tarea_mas_realizada,
+             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.BI_Camion c2 ON hechos_ot2.camion_id = c2.id
+             where hechos_ot2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 3 ROWS FETCH NEXT 1 ROWS ONLY) as Cuarta_Tarea_mas_realizada,
+             (Select hechos_ot2.tarea_id From MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot2 JOIN MONKEY_D_BASE.BI_Camion c2 ON hechos_ot2.camion_id = c2.id
+             where hechos_ot2.modelo_id = cm.id Group by hechos_ot2.tarea_id Order by Count(*) desc OFFSET 4 ROWS FETCH NEXT 1 ROWS ONLY) as Quinta_Tarea_mas_realizada
     FROM MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hechos_ot
-    Join MONKEY_D_BASE.Camion_Modelo cm on cm.id = hechos_ot.modelo_id
+    Join MONKEY_D_BASE.BI_Camion_Modelo cm on cm.id = hechos_ot.modelo_id
     Group by cm.id,cm.descripcion;
 GO
 
@@ -370,7 +499,7 @@ AS
 		MONKEY_D_BASE.BI_MATERIAL_X_USADO (9, hot.taller_id) as [10mo Material mas usado] 
 	FROM     
 		MONKEY_D_BASE.BI_Hechos_Ordenes_tarea hot
-	INNER JOIN MONKEY_D_BASE.Taller t ON hot.taller_id = t.id
+	INNER JOIN MONKEY_D_BASE.BI_Taller t ON hot.taller_id = t.id
 	GROUP BY 
 		t.nombre,
 		hot.taller_id;
@@ -400,82 +529,3 @@ BEGIN CATCH	-- Esta porción es la que contempla los errores en caso de ocurrir.
 END CATCH
 
 GO
-
-
-DROP TABLE MONKEY_D_BASE.BI_Hechos_Viajes;
-
-CREATE TABLE MONKEY_D_BASE.BI_Hechos_Viajes (
-    tiempo_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tiempo(id),
-    camion_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion(id),
-    marca_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Marca(id),
-    modelo_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Camion_modelo(id),
-    recorrido_id                INT FOREIGN KEY REFERENCES MONKEY_D_BASE.recorrido(id),
-    rango_edad_id               INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Rango_Edad(id),
-    facturacion_total           DECIMAL(18,2) NOT NULL,
-    costo_chofer                DECIMAL(18,2) NOT NULL,
-    costo_combustible           DECIMAL(18,2) NOT NULL,
-    CONSTRAINT PK_BI_Hechos_Viajes PRIMARY KEY (tiempo_id, camion_id, marca_id, modelo_id,  recorrido_id, rango_edad_id)
-    );
-
-INSERT INTO MONKEY_D_BASE.BI_Hechos_Viajes
-SELECT 
-    t.id_tiempo tiempo_id,
-    v.camion_codigo,
-    cm.marca_id,
-    c.modelo_id,
-    v.recorrido_codigo,
-    r.id rango_edad_id,
-    0,
-    SUM(((DATEDIFF(HOUR, v.fecha_inicio, v.fecha_fin) * e.costo_hora))) costo_chofer,
-    SUM(v.combustible_consumido) * 100 costo_combustible
-FROM 
-    MONKEY_D_BASE.Viaje v
-    INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON v.fecha_fin BETWEEN t.fecha_inicio_cuatri AND t.fecha_fin_cuatri 
-                                            AND YEAR(v.fecha_fin) = t.anio
-    INNER JOIN MONKEY_D_BASE.Camion c ON c.id = v.camion_codigo
-    INNER JOIN MONKEY_D_BASE.Camion_modelo cm ON cm.id = c.modelo_id
-    INNER JOIN MONKEY_D_BASE.Empleado e ON v.chofer_legajo = e.legajo
-    INNER JOIN MONKEY_D_BASE.BI_Rango_Edad r ON DATEDIFF(YEAR, e.fecha_nacimiento, v.fecha_fin) BETWEEN r.edad_ini AND r.edad_fin
-GROUP BY     t.id_tiempo,
-            v.camion_codigo,
-            cm.marca_id,
-            c.modelo_id,
-            v.recorrido_codigo,
-            r.id
-SELECT 
-    t.id_tiempo tiempo_id,
-    v.camion_codigo,
-    c.modelo_id,
-    cm.marca_id,
-    v.recorrido_codigo,
-    r.id rango_edad_id,
-    SUM(vp.paquete_cantidad * vp.paquete_precio_hist) + v.precio_recorrido_his facturacion_Total
-INTO #tmp
-FROM 
-    MONKEY_D_BASE.Viaje v
-    INNER JOIN MONKEY_D_BASE.Viaje_Paquete vp ON vp.viaje_id = v.id
-    INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON v.fecha_fin BETWEEN t.fecha_inicio_cuatri AND t.fecha_fin_cuatri 
-                                            AND YEAR(v.fecha_fin) = t.anio
-    INNER JOIN MONKEY_D_BASE.Camion c ON c.id = v.camion_codigo
-    INNER JOIN MONKEY_D_BASE.Camion_modelo cm ON cm.id = c.modelo_id
-    INNER JOIN MONKEY_D_BASE.Empleado e ON v.chofer_legajo = e.legajo
-    INNER JOIN MONKEY_D_BASE.BI_Rango_Edad r ON DATEDIFF(YEAR, e.fecha_nacimiento, v.fecha_fin) BETWEEN r.edad_ini AND r.edad_fin
-GROUP BY t.id_tiempo ,
-        v.camion_codigo,
-        c.modelo_id,
-        cm.marca_id,
-        v.recorrido_codigo,
-        r.id,
-        v.precio_recorrido_his
-
-UPDATE MONKEY_D_BASE.BI_Hechos_Viajes
-SET facturacion_Total = t.facturacion_Total
-FROM MONKEY_D_BASE.BI_Hechos_Viajes v , #tmp t
-WHERE    v.tiempo_id = t.tiempo_id
-AND        v.camion_id = t.camion_codigo
-AND        v.marca_id = t.marca_id
-AND        v.modelo_id = t.modelo_id
-AND        v.recorrido_id = t.recorrido_codigo
-AND        v.rango_edad_id = t.rango_edad_id
-
-DROP TABLE #tmp

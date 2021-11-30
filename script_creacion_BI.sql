@@ -109,18 +109,18 @@ CREATE TABLE MONKEY_D_BASE.BI_Tiempo (
 
 --Creación de la tabla de Hecho de Ordenes Tarea
 CREATE TABLE MONKEY_D_BASE.BI_Hechos_Ordenes_tarea (
-		tiempo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tiempo(id_tiempo),
-		taller_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Taller(id),
-		tarea_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tarea(id),
-		camion_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion(id),
-		modelo_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion_Modelo(id),
-		marca_id				INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Marca(id),
-		legajo_empleado			INT FOREIGN KEY REFERENCES MONKEY_D_BASE.Empleado(legajo),	
-		camion_dias_sin_servicio	INT NOT NULL,
-		costo					decimal(18,2) NOT NULL,
-		desvio_promedio			decimal(12,2) NOT NULL,
-		CONSTRAINT PK_BI_Hechos_Ordenes_tarea PRIMARY KEY (tiempo_id, taller_id, tarea_id, camion_id, modelo_id, marca_id, legajo_empleado)
+        tiempo_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tiempo(id_tiempo),
+        taller_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Taller(id),
+        tarea_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Tarea(id),
+        camion_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion(id),
+        modelo_id                   INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Camion_Modelo(id),
+        marca_id                    INT FOREIGN KEY REFERENCES MONKEY_D_BASE.BI_Marca(id),
+        camion_dias_sin_servicio    INT NOT NULL,
+        costo                       DECIMAL(18,2) NOT NULL,
+        desvio_promedio             DECIMAL(12,2) NOT NULL,
+        CONSTRAINT PK_BI_Hechos_Ordenes_tarea PRIMARY KEY (tiempo_id, taller_id, tarea_id, camion_id, modelo_id, marca_id)
 );
+
 
 --Creación de la tabla de hecho para Viajes
 CREATE TABLE MONKEY_D_BASE.BI_Hechos_Viajes (
@@ -255,8 +255,8 @@ BEGIN
 
         SELECT 
         ot.camion_id camion_id,
-		cm.id modelo_id,
-		cm.marca_id marca_id,
+        cm.id modelo_id,
+        cm.marca_id marca_id,
         ot.id,
         t.id_tiempo,
         DATEDIFF(DAY, MIN(ott.fecha_ini_real), MAX(ott.fecha_fin_real)) tiempo_sin_servicio
@@ -264,47 +264,57 @@ BEGIN
         FROM MONKEY_D_BASE.Orden_trabajo ot
         INNER JOIN MONKEY_D_BASE.Orden_tarea ott ON ot.id = ott.orden_id
         INNER JOIN MONKEY_D_BASE.BI_Tiempo t ON ott.fecha_fin_real BETWEEN t.fecha_inicio_cuatri AND t.fecha_fin_cuatri AND t.anio = YEAR(ott.fecha_fin_real)
-		JOIN MONKEY_D_BASE.Camion c ON c.id = ot.camion_id
-		JOIN MONKEY_D_BASE.Camion_Modelo cm ON cm.id = c.modelo_id
+        JOIN MONKEY_D_BASE.Camion c ON c.id = ot.camion_id
+        JOIN MONKEY_D_BASE.Camion_Modelo cm ON cm.id = c.modelo_id
         GROUP BY    ot.camion_id,
-					cm.id,
-					cm.marca_id,
+                    cm.id,
+                    cm.marca_id,
                     ot.id,
                     t.id_tiempo;
 					
 		INSERT INTO MONKEY_D_BASE.BI_Hechos_Ordenes_tarea (
-							tiempo_id,
-							taller_id,
-							tarea_id,
-							camion_id,
-							modelo_id,
-							marca_id,
-							legajo_empleado,
-							camion_dias_sin_servicio,
-							costo,
-							desvio_promedio)
-		SELECT tiemp.id_tiempo as tiempo_id, tal.id as taller_id, tar.id as tarea_id, cam.id as camion_id,cm.id as modelo_id,cm.marca_id as marca_id, emp.legajo as legajo_empleado, 
-			(Select MAX(tiempo_sin_servicio) From #camionSinServicio2 temp where temp.camion_id = cam.id and temp.id_tiempo = tiemp.id_tiempo) as camion_dias_sin_servicio,
-			Sum(DATEDIFF(DAY, ordt.fecha_ini_real, ordt.fecha_fin_real) * 8 * emp.costo_hora) + Sum(ISNULL(tm.material_cantidad * mat.precio,0)) as costo,
-			AVG(tar.tiempo_estimado) - AVG(DATEDIFF(day,ordt.fecha_ini_real,ordt.fecha_fin_real)) desvio_promedio
-		From MONKEY_D_BASE.Orden_Tarea ordt 
-		Join MONKEY_D_BASE.Orden_Trabajo ot on ordt.orden_id = ot.id
-		Join MONKEY_D_BASE.Taller tal on tal.id = ot.taller_id
-		Join MONKEY_D_BASE.Empleado emp on emp.legajo = ordt.mecanico_legajo
-		Join MONKEY_D_BASE.Tarea tar on tar.id = ordt.tarea_id
-		Join MONKEY_D_BASE.Tarea_Material tm on tm.tarea_id = tar.id
-		Join MONKEY_D_BASE.Material mat on mat.id = tm.material_id
-		Join MONKEY_D_BASE.Camion cam on cam.id = ot.camion_id
-		Join MONKEY_D_BASE.Camion_Modelo cm on cm.id = cam.modelo_id
-		Join MONKEY_D_BASE.Marca mar on mar.id = cm.marca_id
-		JOIN MONKEY_D_BASE.BI_Tiempo tiemp ON ordt.fecha_fin_real BETWEEN tiemp.fecha_inicio_cuatri AND tiemp.fecha_fin_cuatri AND YEAR(ordt.fecha_fin_real) = tiemp.anio
-		Group by  tal.id,  tar.id, cam.id,cm.id,cm.marca_id, emp.legajo, tiemp.id_tiempo
-		order by 1, 2, 3 ,4, 5;
+                            tiempo_id,
+                            taller_id,
+                            tarea_id,
+                            camion_id,
+                            modelo_id,
+                            marca_id,
+                            camion_dias_sin_servicio,
+                            costo,
+                            desvio_promedio)
+		SELECT  tiemp.id_tiempo as tiempo_id, 
+                tal.id as taller_id, 
+                tar.id as tarea_id, 
+                cam.id as camion_id,
+                cm.id as modelo_id,
+                cm.marca_id as marca_id,                
+                (Select MAX(tiempo_sin_servicio) From #camionSinServicio2 temp where temp.camion_id = cam.id and temp.id_tiempo = tiemp.id_tiempo) as camion_dias_sin_servicio,
+                Sum(DATEDIFF(DAY, ordt.fecha_ini_real, ordt.fecha_fin_real) * 8 * emp.costo_hora) + Sum(ISNULL(tm.material_cantidad * mat.precio,0)) as costo,
+                AVG(tar.tiempo_estimado) - AVG(DATEDIFF(day,ordt.fecha_ini_real,ordt.fecha_fin_real)) desvio_promedio
+        From MONKEY_D_BASE.Orden_Tarea ordt 
+        Join MONKEY_D_BASE.Orden_Trabajo ot on ordt.orden_id = ot.id
+        Join MONKEY_D_BASE.Taller tal on tal.id = ot.taller_id
+        Join MONKEY_D_BASE.Empleado emp on emp.legajo = ordt.mecanico_legajo
+        Join MONKEY_D_BASE.Tarea tar on tar.id = ordt.tarea_id
+        Join MONKEY_D_BASE.Tarea_Material tm on tm.tarea_id = tar.id
+        Join MONKEY_D_BASE.Material mat on mat.id = tm.material_id
+        Join MONKEY_D_BASE.Camion cam on cam.id = ot.camion_id
+        Join MONKEY_D_BASE.Camion_Modelo cm on cm.id = cam.modelo_id
+        Join MONKEY_D_BASE.Marca mar on mar.id = cm.marca_id
+        JOIN MONKEY_D_BASE.BI_Tiempo tiemp ON ordt.fecha_fin_real BETWEEN tiemp.fecha_inicio_cuatri AND tiemp.fecha_fin_cuatri AND YEAR(ordt.fecha_fin_real) = tiemp.anio
+        Group by    tal.id,
+                    tar.id, 
+                    cam.id,
+                    cm.id,
+                    cm.marca_id, 
+                    --emp.legajo, 
+                    tiemp.id_tiempo
+        order by 1, 2, 3 ,4, 5;
+
+        EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
+
+        DROP TABLE #camionSinServicio2;
 		
-		EXEC MONKEY_D_BASE.Sp_registrarTabla @tabla;
-
-		DROP TABLE #camionSinServicio2;
-
 		SET @tabla = 'BI_Hechos_Viajes';
 
 --Insert para la tabla de hecho de Viaje
@@ -505,6 +515,21 @@ AS
 		hot.taller_id;
 
 GO
+
+-- Ganancia por camion
+CREATE VIEW MONKEY_D_BASE.BI_VW_Ganancia_x_camion 
+AS
+	SELECT 
+	c.patente,
+	SUM(v.facturacion_total) - SUM(v.costo_chofer) - SUM(v.costo_combustible) - SUM(o.costo) Ganancia
+FROM 
+	MONKEY_D_BASE.BI_Hechos_Ordenes_tarea o
+	INNER JOIN MONKEY_D_BASE.BI_Hechos_Viajes v ON o.camion_id = v.camion_id
+	INNER JOIN MONKEY_D_BASE.BI_Camion c ON o.camion_id = c.id
+GROUP BY c.patente
+
+GO
+
 /************************
 *** LLENADO DE TABLAS ***
 *************************/
